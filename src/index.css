@@ -92,6 +92,15 @@ body {
 }
 .slider-value { font-size: 13px; font-weight: 600; color: var(--accent); min-width: 50px; text-align: right; }
 
+.toggle-group { display: flex; gap: 4px; flex: 1; }
+.toggle-btn {
+  flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); color: var(--text-muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: var(--transition); font-family: inherit;
+}
+.toggle-btn:hover { border-color: var(--border-focus); color: var(--text-secondary); }
+.toggle-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
 .select-field {
   flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px;

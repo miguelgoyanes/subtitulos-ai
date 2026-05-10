@@ -33,7 +33,7 @@ def transcribe(video_path, language=None):
 
     return segments
 
-def regroup_words(words_json, max_words, pause_threshold):
+def regroup_words(words_json, max_words, pause_threshold, cut_by_pause=True):
     all_words = json.loads(words_json)
     if not all_words: return []
     new_segments, group = [], []
@@ -43,9 +43,15 @@ def regroup_words(words_json, max_words, pause_threshold):
         pause = not last and (all_words[i + 1]["start"] - w["end"]) >= pause_threshold
         punct = w["word"].strip() and w["word"].strip()[-1] in ".,:;!?¡¿"
         full = len(group) >= max_words
-        if last or pause or punct or full:
-            new_segments.append({"start": group[0]["start"], "end": group[-1]["end"], "text": " ".join(x["word"].strip() for x in group)})
-            group = []
+
+        if cut_by_pause:
+            if last or pause or full:
+                new_segments.append({"start": group[0]["start"], "end": group[-1]["end"], "text": " ".join(x["word"].strip() for x in group)})
+                group = []
+        else:
+            if last or punct or full:
+                new_segments.append({"start": group[0]["start"], "end": group[-1]["end"], "text": " ".join(x["word"].strip() for x in group)})
+                group = []
     return new_segments
 
 def regroup(segments_json, max_words, pause_threshold):
@@ -83,10 +89,13 @@ def main():
     parser.add_argument("--regroup-words", type=str)
     parser.add_argument("--max-words", type=int, default=6)
     parser.add_argument("--pause-threshold", type=float, default=0.25)
+    parser.add_argument("--cut-by-pause", type=str, default="true")
     args = parser.parse_args()
 
+    cut_by_pause = args.cut_by_pause.lower() == "true"
+
     if args.regroup_words:
-        print(json.dumps(regroup_words(args.regroup_words, args.max_words, args.pause_threshold), ensure_ascii=False))
+        print(json.dumps(regroup_words(args.regroup_words, args.max_words, args.pause_threshold, cut_by_pause), ensure_ascii=False))
         sys.exit(0)
     if args.regroup:
         print(json.dumps(regroup(args.regroup, args.max_words, args.pause_threshold), ensure_ascii=False))

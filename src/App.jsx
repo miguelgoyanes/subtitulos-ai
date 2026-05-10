@@ -11,6 +11,7 @@ function App() {
   const [language, setLanguage] = useState('Automático');
   const [maxWords, setMaxWords] = useState(6);
   const [pauseThreshold, setPauseThreshold] = useState(0.25);
+  const [cutByPause, setCutByPause] = useState(true);
   const [segments, setSegments] = useState([]);
   const [originalWords, setOriginalWords] = useState([]);
   const [progress, setProgress] = useState(0);
@@ -75,11 +76,11 @@ function App() {
     if (!originalWords.length) return;
     setStatus({ type: 'info', text: 'Reagrupando...' });
     try {
-      const result = await invoke('regroup_segments', { words: JSON.stringify(originalWords), maxWords, pauseThreshold });
+      const result = await invoke('regroup_segments', { words: JSON.stringify(originalWords), maxWords, pauseThreshold, cutByPause });
       setSegments(result);
       setStatus({ type: 'success', text: `${result.length} bloques después de reagrupar` });
     } catch (err) { setStatus({ type: 'error', text: `Error: ${err}` }); }
-  }, [originalWords, maxWords, pauseThreshold]);
+  }, [originalWords, maxWords, pauseThreshold, cutByPause]);
 
   const handleSave = useCallback(async () => {
     if (!segments.length) return;
@@ -133,6 +134,13 @@ function App() {
             <div className="slider-container">
               <input type="range" min="0.1" max="1.0" step="0.05" value={pauseThreshold} onChange={e => setPauseThreshold(Number(e.target.value))} />
               <span className="slider-value">{pauseThreshold.toFixed(2)}s</span>
+            </div>
+          </div>
+          <div className="settings-row">
+            <label>Corte</label>
+            <div className="toggle-group">
+              <button className={`toggle-btn ${!cutByPause ? 'active' : ''}`} onClick={() => setCutByPause(false)}>Puntuación</button>
+              <button className={`toggle-btn ${cutByPause ? 'active' : ''}`} onClick={() => setCutByPause(true)}>Tiempo</button>
             </div>
           </div>
           <button className="btn btn-secondary full-width" onClick={handleRegroup} disabled={!segments.length}>↺ Reagrupar bloques</button>

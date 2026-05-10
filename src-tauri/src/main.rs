@@ -37,10 +37,14 @@ fn transcribe(video_path: String, language: Option<String>) -> Result<Transcribe
 }
 
 #[tauri::command]
-fn regroup_segments(words: String, max_words: u32, pause_threshold: f64) -> Result<Vec<Segment>, String> {
+fn regroup_segments(words: String, max_words: u32, pause_threshold: f64, cut_by_pause: bool) -> Result<Vec<Segment>, String> {
     let script_path = get_script_path();
     let mut cmd = Command::new("python");
-    cmd.arg(&script_path).arg("--regroup-words").arg(&words).arg("--max-words").arg(max_words.to_string()).arg("--pause-threshold").arg(pause_threshold.to_string());
+    cmd.arg(&script_path)
+        .arg("--regroup-words").arg(&words)
+        .arg("--max-words").arg(max_words.to_string())
+        .arg("--pause-threshold").arg(pause_threshold.to_string())
+        .arg("--cut-by-pause").arg(cut_by_pause.to_string());
 
     let output = cmd.output().map_err(|e| format!("Error ejecutando Python: {}", e))?;
     if !output.status.success() { return Err(format!("Error reagrupando: {}", String::from_utf8_lossy(&output.stderr))); }
