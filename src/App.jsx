@@ -106,7 +106,10 @@ function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1>Subtítulos</h1>
+          <div className="title-row">
+            <img src="/vite.svg" alt="" className="title-logo" />
+            <h1>Subtítulos</h1>
+          </div>
           <p className="subtitle">Genera subtítulos SRT para tus vídeos</p>
         </div>
 
