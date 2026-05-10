@@ -1,8 +1,8 @@
-# Subtítulos Automáticos 2.0
+# Subtítulos Automáticos
 
 Genera subtítulos en formato SRT para tus vídeos usando inteligencia artificial. Transcribe el audio automáticamente, edita los bloques visualmente y exporta listos para importar en CapCut, Premiere o cualquier editor.
 
-![Captura](https://via.placeholder.com/800x450/0f0f0f/10b981?text=Subtitulos+2.0)
+![Captura](docs/captura.png)
 
 ## Características
 
@@ -18,7 +18,7 @@ Genera subtítulos en formato SRT para tus vídeos usando inteligencia artificia
 
 ## Descarga
 
-Ve a [Releases](https://github.com/TU-USUARIO/subtitulos-2.0/releases) y descarga el instalador para tu sistema:
+Ve a [Releases](https://github.com/miguelgoyanes/subtitulos-ai/releases) y descarga el instalador para tu sistema:
 
 | Plataforma | Archivo |
 |---|---|
@@ -91,8 +91,8 @@ sudo apt install ffmpeg
 ### Instalar
 
 ```bash
-git clone https://github.com/TU-USUARIO/subtitulos-2.0.git
-cd subtitulos-2.0
+git clone https://github.com/miguelgoyanes/subtitulos-ai.git
+cd subtitulos-ai
 npm install
 ```
 
