@@ -3,7 +3,10 @@ import json
 import sys
 
 def transcribe(video_path, language=None):
+    import os
     import whisper
+    # Resolve symlinks / junction points to avoid WinError 448
+    video_path = os.path.realpath(video_path)
     model = whisper.load_model("turbo")
     opts = {"word_timestamps": True}
     if language: opts["language"] = language

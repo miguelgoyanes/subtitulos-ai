@@ -39,6 +39,10 @@ def cortar(words: list, max_words: int, pause_threshold: float, cut_by_pause: bo
 
 
 def mode_transcribe(video_path: str, language) -> None:
+    import os
+    # Resolve symlinks / junction points to avoid WinError 448 (untrusted mount point)
+    video_path = os.path.realpath(video_path)
+
     try:
         import whisper
     except ImportError:
