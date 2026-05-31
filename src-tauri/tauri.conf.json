@@ -6,7 +6,7 @@
     "distDir": "../dist",
     "withGlobalTauri": false
   },
-  "package": { "productName": "Subtitulos", "version": "2.0.1" },
+  "package": { "productName": "Subtitulos", "version": "2.0.2" },
   "tauri": {
     "allowlist": {
       "all": false,

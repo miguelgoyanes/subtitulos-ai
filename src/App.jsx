@@ -4,6 +4,30 @@ import TranscriptionPanel from './components/TranscriptionPanel';
 import SubtitleEditor from './components/SubtitleEditor';
 import { invoke } from '@tauri-apps/api/tauri';
 
+function regroupWords(words, maxWords, pauseThreshold, cutByPause) {
+  if (!words.length) return [];
+  const segs = [];
+  let group = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    group.push(w);
+    const last = i === words.length - 1;
+    const hasPause = cutByPause && !last && (words[i + 1].start - w.end) >= pauseThreshold;
+    const hasPunct = w.word.trim().length > 0 && '.,:;!?¡¿'.includes(w.word.trim().at(-1));
+    const full = group.length >= maxWords;
+    if (last || hasPause || hasPunct || full) {
+      segs.push({
+        start: group[0].start,
+        end: group.at(-1).end,
+        text: group.map(x => x.word.trim()).join(' '),
+        words: [...group],
+      });
+      group = [];
+    }
+  }
+  return segs;
+}
+
 function App() {
   const [videoPath, setVideoPath] = useState('');
   const [destPath, setDestPath] = useState('');
@@ -43,7 +67,7 @@ function App() {
     if (!videoPath) { setStatus({ type: 'error', text: 'Selecciona un vídeo primero' }); return; }
     if (!destPath) { setStatus({ type: 'error', text: 'Selecciona una carpeta de destino' }); return; }
 
-    setIsTranscribing(true); setElapsed(0); setProgress(0); setStatus({ type: 'info', text: 'Cargando modelo Whisper...' });
+    setIsTranscribing(true); setElapsed(0); setProgress(0); setSegments([]); setOriginalWords([]); setStatus({ type: 'info', text: 'Cargando modelo Whisper...' });
     const timer = setInterval(() => setElapsed(prev => prev + 1), 1000);
 
     const progressTimer = setInterval(() => {
@@ -72,14 +96,11 @@ function App() {
     }
   }, [videoPath, destPath, language]);
 
-  const handleRegroup = useCallback(async () => {
+  const handleRegroup = useCallback(() => {
     if (!originalWords.length) return;
-    setStatus({ type: 'info', text: 'Reagrupando...' });
-    try {
-      const result = await invoke('regroup_segments', { words: JSON.stringify(originalWords), maxWords, pauseThreshold, cutByPause });
-      setSegments(result);
-      setStatus({ type: 'success', text: `${result.length} bloques después de reagrupar` });
-    } catch (err) { setStatus({ type: 'error', text: `Error: ${err}` }); }
+    const result = regroupWords(originalWords, maxWords, pauseThreshold, cutByPause);
+    setSegments(result);
+    setStatus({ type: 'success', text: `${result.length} bloques después de reagrupar` });
   }, [originalWords, maxWords, pauseThreshold, cutByPause]);
 
   const handleSave = useCallback(async () => {
