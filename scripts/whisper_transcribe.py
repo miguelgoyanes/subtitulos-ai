@@ -2,15 +2,31 @@ import argparse
 import json
 import sys
 
+def _transcribe_audio(model, video_path, opts):
+    import sys, shutil, tempfile, os
+    try:
+        return model.transcribe(video_path, **opts)
+    except Exception as e:
+        if sys.platform != "win32" or getattr(e, "winerror", None) != 448:
+            raise
+    ext = os.path.splitext(video_path)[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+    tmp.close()
+    try:
+        shutil.copy2(video_path, tmp.name)
+        return model.transcribe(tmp.name, **opts)
+    finally:
+        try: os.unlink(tmp.name)
+        except OSError: pass
+
 def transcribe(video_path, language=None):
     import os
     import whisper
-    # Resolve symlinks / junction points to avoid WinError 448
     video_path = os.path.realpath(video_path)
     model = whisper.load_model("turbo")
     opts = {"word_timestamps": True}
     if language: opts["language"] = language
-    result = model.transcribe(video_path, **opts)
+    result = _transcribe_audio(model, video_path, opts)
     segments = []
     for seg in result["segments"]:
         words = seg.get("words", [])

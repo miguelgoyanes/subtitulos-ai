@@ -30,11 +30,7 @@ struct TranscribeResult {
 
 // ── localización del script ──────────────────────────────────────────────────
 
-/// Busca whisper_transcribe.py en este orden:
-/// 1. Recurso empaquetado por Tauri (instalación normal)
-/// 2. Rutas relativas al ejecutable (desarrollo / copia manual)
 fn get_script_path(app: &tauri::AppHandle) -> Result<String, String> {
-    // 1. Recurso empaquetado — aquí lo encuentra siempre en producción
     if let Some(p) = app
         .path_resolver()
         .resolve_resource("scripts/whisper_transcribe.py")
@@ -44,39 +40,38 @@ fn get_script_path(app: &tauri::AppHandle) -> Result<String, String> {
         }
     }
 
-    // 2. Fallback para desarrollo y pruebas manuales
     let exe = std::env::current_exe().unwrap_or_default();
     let exe_dir = exe.parent().unwrap_or_else(|| Path::new("."));
-    for rel in &[
-        "scripts",
-        "../scripts",
-        "../../scripts",
-        "../../../scripts",
-    ] {
+    for rel in &["scripts", "../scripts", "../../scripts", "../../../scripts"] {
         let p = exe_dir.join(rel).join("whisper_transcribe.py");
         if p.exists() {
             return Ok(p.to_string_lossy().to_string());
         }
     }
 
-    Err(
-        "Script de transcripción no encontrado.\nReinstala la aplicación desde GitHub.".to_string(),
-    )
+    Err("Script de transcripción no encontrado.\nReinstala la aplicación desde GitHub.".to_string())
 }
 
-// ── ejecución de Python ──────────────────────────────────────────────────────
+// ── ejecución de Python (bloqueante, llamar desde spawn_blocking) ────────────
 
-/// Intenta ejecutar el script con "python" y luego con "python3".
-/// Devuelve stdout si todo va bien, o un mensaje de error claro.
-fn run_with_python(script: &str, args: &[&str]) -> Result<String, String> {
+fn run_python_blocking(script: &str, args: &[String]) -> Result<String, String> {
     for python in ["python", "python3"] {
-        match Command::new(python).arg(script).args(args).output() {
+        let mut cmd = Command::new(python);
+        cmd.arg(script).args(args);
+
+        // Evita que aparezca una ventana de consola en Windows
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        match cmd.output() {
             Ok(out) => {
                 if out.status.success() {
                     return Ok(String::from_utf8_lossy(&out.stdout).to_string());
                 }
                 let stderr = String::from_utf8_lossy(&out.stderr);
-                // Error conocido: Whisper no instalado
                 if stderr.contains("No module named 'whisper'")
                     || stderr.contains("ModuleNotFoundError")
                 {
@@ -91,13 +86,11 @@ fn run_with_python(script: &str, args: &[&str]) -> Result<String, String> {
                 }
                 return Err(format!("Error de Python:\n{}", stderr));
             }
-            // python/python3 no existe en el PATH → seguir intentando
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
             Err(e) => return Err(format!("Error ejecutando Python: {}", e)),
         }
     }
 
-    // Ninguno de los dos funcionó
     Err(
         "Python no está instalado o no está en el PATH.\n\n\
          Descárgalo desde: https://www.python.org/downloads\n\
@@ -106,30 +99,33 @@ fn run_with_python(script: &str, args: &[&str]) -> Result<String, String> {
     )
 }
 
-// ── comandos Tauri ────────────────────────────────────────────────────────────
+// ── comandos Tauri (async → no bloquean el hilo principal) ───────────────────
 
 #[tauri::command]
-fn transcribe(
+async fn transcribe(
     app: tauri::AppHandle,
     video_path: String,
     language: Option<String>,
 ) -> Result<TranscribeResult, String> {
     let script = get_script_path(&app)?;
 
-    let mut args: Vec<&str> = vec!["--video", &video_path, "--json"];
-    if let Some(ref lang) = language {
-        args.push("--language");
-        args.push(lang.as_str());
+    let mut args: Vec<String> = vec!["--video".to_string(), video_path, "--json".to_string()];
+    if let Some(lang) = language {
+        args.push("--language".to_string());
+        args.push(lang);
     }
 
-    let stdout = run_with_python(&script, &args)?;
+    let stdout = tauri::async_runtime::spawn_blocking(move || run_python_blocking(&script, &args))
+        .await
+        .map_err(|e| format!("Error interno: {}", e))??;
+
     let segments: Vec<Segment> = serde_json::from_str(&stdout)
         .map_err(|e| format!("Error procesando resultado: {}", e))?;
     Ok(TranscribeResult { segments })
 }
 
 #[tauri::command]
-fn regroup_segments(
+async fn regroup_segments(
     app: tauri::AppHandle,
     words: String,
     max_words: u32,
@@ -137,23 +133,20 @@ fn regroup_segments(
     cut_by_pause: bool,
 ) -> Result<Vec<Segment>, String> {
     let script = get_script_path(&app)?;
-    let max_s = max_words.to_string();
-    let pau_s = pause_threshold.to_string();
-    let cut_s = cut_by_pause.to_string();
+    let args: Vec<String> = vec![
+        "--regroup-words".to_string(),
+        words,
+        "--max-words".to_string(),
+        max_words.to_string(),
+        "--pause-threshold".to_string(),
+        pause_threshold.to_string(),
+        "--cut-by-pause".to_string(),
+        cut_by_pause.to_string(),
+    ];
 
-    let stdout = run_with_python(
-        &script,
-        &[
-            "--regroup-words",
-            &words,
-            "--max-words",
-            &max_s,
-            "--pause-threshold",
-            &pau_s,
-            "--cut-by-pause",
-            &cut_s,
-        ],
-    )?;
+    let stdout = tauri::async_runtime::spawn_blocking(move || run_python_blocking(&script, &args))
+        .await
+        .map_err(|e| format!("Error interno: {}", e))??;
 
     serde_json::from_str(&stdout).map_err(|e| format!("Error procesando resultado: {}", e))
 }

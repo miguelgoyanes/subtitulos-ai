@@ -38,9 +38,33 @@ def cortar(words: list, max_words: int, pause_threshold: float, cut_by_pause: bo
     return segs
 
 
+def _transcribe_audio(model, video_path: str, opts: dict):
+    """Llama a model.transcribe. Si falla con WinError 448 (mount point no confiable),
+    copia el fichero a un directorio temporal y reintenta desde ahí."""
+    import os, sys, shutil, tempfile
+
+    try:
+        return model.transcribe(video_path, **opts)
+    except Exception as e:
+        if sys.platform != "win32" or getattr(e, "winerror", None) != 448:
+            raise
+
+    # Fallback: copiar a temp y reintentar
+    ext = os.path.splitext(video_path)[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
+    tmp.close()
+    try:
+        shutil.copy2(video_path, tmp.name)
+        return model.transcribe(tmp.name, **opts)
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+
 def mode_transcribe(video_path: str, language) -> None:
     import os
-    # Resolve symlinks / junction points to avoid WinError 448 (untrusted mount point)
     video_path = os.path.realpath(video_path)
 
     try:
@@ -61,7 +85,7 @@ def mode_transcribe(video_path: str, language) -> None:
         opts["language"] = language
 
     try:
-        result = model.transcribe(video_path, **opts)
+        result = _transcribe_audio(model, video_path, opts)
     except Exception as e:
         error(f"Error transcribiendo el vídeo: {e}")
 
