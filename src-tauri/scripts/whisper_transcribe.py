@@ -24,10 +24,11 @@ def cortar(words: list, max_words: int, pause_threshold: float, cut_by_pause: bo
     for i, w in enumerate(words):
         grupo.append(w)
         ultima  = (i == len(words) - 1)
-        hay_p   = cut_by_pause and not ultima and (words[i + 1]["start"] - w["end"]) >= pause_threshold
+        hay_p   = not ultima and (words[i + 1]["start"] - w["end"]) >= pause_threshold
         puntuac = bool(w["word"].strip()) and w["word"].strip()[-1] in ".,:;!?¡¿"
         lleno   = len(grupo) >= max_words
-        if ultima or hay_p or puntuac or lleno:
+        corte   = (ultima or hay_p or lleno) if cut_by_pause else (ultima or puntuac or lleno)
+        if corte:
             segs.append({
                 "start": grupo[0]["start"],
                 "end":   grupo[-1]["end"],

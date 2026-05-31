@@ -12,10 +12,11 @@ function regroupWords(words, maxWords, pauseThreshold, cutByPause) {
     const w = words[i];
     group.push(w);
     const last = i === words.length - 1;
-    const hasPause = cutByPause && !last && (words[i + 1].start - w.end) >= pauseThreshold;
-    const hasPunct = w.word.trim().length > 0 && '.,:;!?¡¿'.includes(w.word.trim().at(-1));
     const full = group.length >= maxWords;
-    if (last || hasPause || hasPunct || full) {
+    const hasPause = !last && (words[i + 1].start - w.end) >= pauseThreshold;
+    const hasPunct = w.word.trim().length > 0 && '.,:;!?¡¿'.includes(w.word.trim().at(-1));
+    const cut = cutByPause ? (last || hasPause || full) : (last || hasPunct || full);
+    if (cut) {
       segs.push({
         start: group[0].start,
         end: group.at(-1).end,
