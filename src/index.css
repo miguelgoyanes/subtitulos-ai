@@ -144,6 +144,7 @@ body {
 .status-message { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; }
 .status-success { background: var(--accent-light); color: var(--accent); }
 .status-error { background: var(--danger-light); color: var(--danger); }
+.status-restart { background: #fff3cd; color: #856404; border: 1px solid #ffc107; line-height: 1.5; }
 .status-info { background: var(--bg-tertiary); color: var(--text-secondary); }
 
 .main-panel { flex: 1; background: var(--bg-primary); display: flex; flex-direction: column; overflow: hidden; }

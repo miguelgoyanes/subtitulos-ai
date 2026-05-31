@@ -90,7 +90,11 @@ function App() {
       setStatus({ type: 'success', text: `${result.segments.length} bloques generados. Ajusta si quieres.` });
     } catch (err) {
       clearInterval(timer); clearInterval(progressTimer);
-      setStatus({ type: 'error', text: `Error: ${err}` });
+      if (String(err).includes('RESTART_REQUIRED')) {
+        setStatus({ type: 'restart', text: '' });
+      } else {
+        setStatus({ type: 'error', text: `Error: ${err}` });
+      }
     } finally {
       setIsTranscribing(false);
     }

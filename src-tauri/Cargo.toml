@@ -1,6 +1,6 @@
 [package]
 name = "subtitulos"
-version = "2.0.4"
+version = "2.0.5"
 description = "Generador automático de subtítulos"
 authors = ["tu"]
 license = ""

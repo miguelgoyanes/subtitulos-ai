@@ -87,6 +87,9 @@ fn run_python_blocking(script: &str, args: &[String]) -> Result<String, String> 
                             .to_string(),
                     );
                 }
+                if stderr.contains("WinError 448") {
+                    return Err("RESTART_REQUIRED".to_string());
+                }
                 return Err(format!("Error de Python:\n{}", stderr));
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,

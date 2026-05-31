@@ -31,7 +31,15 @@ export default function TranscriptionPanel({ language, onLanguageChange, onTrans
         </div>
       )}
 
-      {!isTranscribing && status.text && (
+      {!isTranscribing && status.type === 'restart' && (
+        <div className="status-message status-restart">
+          <strong>Cierra la aplicación y vuelve a abrirla.</strong>
+          <br />
+          Este error ocurre solo en el primer arranque después de instalar.
+        </div>
+      )}
+
+      {!isTranscribing && status.type !== 'restart' && status.text && (
         <div className={`status-message status-${status.type}`}>{status.text}</div>
       )}
     </div>
