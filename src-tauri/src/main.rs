@@ -58,6 +58,9 @@ fn run_python_blocking(script: &str, args: &[String]) -> Result<String, String> 
     for python in ["python", "python3"] {
         let mut cmd = Command::new(python);
         cmd.arg(script).args(args);
+        // Forzar CWD limpio: el instalador puede lanzar la app desde un directorio
+        // temporal con reparse points; Python heredaría ese contexto problemático.
+        cmd.current_dir(std::env::temp_dir());
 
         // Evita que aparezca una ventana de consola en Windows
         #[cfg(windows)]
